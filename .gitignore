@@ -44,3 +44,5 @@ next-env.d.ts
 /prisma/*.db-journal
 test-results/
 playwright-report/
+
+.vercel
