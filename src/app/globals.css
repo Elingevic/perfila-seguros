@@ -1,26 +1,28 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  --color-marca-50: #eef4ff;
+  --color-marca-100: #dbe6ff;
+  --color-marca-200: #bfd3ff;
+  --color-marca-500: #3b6cf6;
+  --color-marca-600: #1d4ed8;
+  --color-marca-700: #1a3fb0;
+  --color-marca-900: #0b1f4d;
+  --color-marca-950: #071537;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #f6f8fc;
+  color: #0f172a;
 }
+
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.animar-aparecer { animation: aparecer .3s ease-out both; }

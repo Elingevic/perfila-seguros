@@ -1,0 +1,186 @@
+// Perfila — modelo de datos.
+// Base de datos: PostgreSQL (local y producción).
+// Los "enums" se guardan como String (validados en src/lib/dominio.ts) para
+// mantener el esquema simple.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  nombre           String
+  telefono         String?
+  rol              String    // PERSONA | ASEGURADORA | ADMIN
+  aseguradoraId    String?
+  aseguradora      Aseguradora? @relation(fields: [aseguradoraId], references: [id])
+  aceptaTerminosAt DateTime
+  activo           Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  perfil         Perfil?
+  polizas        Poliza[]
+  notificaciones Notificacion[]
+
+  @@index([aseguradoraId])
+}
+
+model Aseguradora {
+  id                   String   @id @default(cuid())
+  nombre               String   @unique
+  rif                  String   @unique
+  sigla                String
+  color                String   @default("#1d4ed8")
+  descripcion          String?
+  // Indicadores públicos que ve el usuario al comparar ofertas
+  siniestrosPagadosPct Int?
+  diasPromedioPago     Int?
+  // Datos para que el asegurado pague la prima
+  pagoMovilBanco       String?
+  pagoMovilTelefono    String?
+  cuentaBancaria       String?
+  estado              String   @default("PENDIENTE") // PENDIENTE | APROBADA | SUSPENDIDA
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  usuarios User[]
+  ofertas  Oferta[]
+  polizas  Poliza[]
+}
+
+model Perfil {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Código público y anónimo que ven las aseguradoras
+  codigo            String   @unique
+  fechaNacimiento   DateTime
+  estadoResidencia  String   // estado de Venezuela
+  ocupacion         String
+  vehiculo          String
+  dependientes      Int
+  salud             String
+  presupuestoUsd    Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  solicitudes Solicitud[]
+}
+
+// Cada vez que el usuario publica su perfil se abre una solicitud
+// con las coberturas que busca. Las aseguradoras ofertan sobre ella.
+model Solicitud {
+  id        String   @id @default(cuid())
+  perfilId  String
+  perfil    Perfil   @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  productos String   // lista separada por comas de códigos de producto
+  estado    String   @default("ABIERTA") // ABIERTA | CERRADA | EXPIRADA
+  expiraAt  DateTime
+  createdAt DateTime @default(now())
+
+  ofertas Oferta[]
+
+  @@index([estado, createdAt])
+  @@index([perfilId])
+}
+
+model Oferta {
+  id               String      @id @default(cuid())
+  solicitudId      String
+  solicitud        Solicitud   @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+  aseguradoraId    String
+  aseguradora      Aseguradora @relation(fields: [aseguradoraId], references: [id])
+  producto         String
+  primaCents       Int         // prima mensual en centavos de USD
+  sumaAseguradaUsd Int
+  resumen          String      // qué cubre, en lenguaje claro
+  exclusiones      String      // qué no cubre, en lenguaje claro
+  estado           String      @default("ENVIADA") // ENVIADA | ACEPTADA | RECHAZADA | RETIRADA
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  poliza Poliza?
+
+  @@unique([solicitudId, aseguradoraId, producto])
+  @@index([aseguradoraId, estado])
+}
+
+model Poliza {
+  id               String      @id @default(cuid())
+  numero           String      @unique
+  ofertaId         String      @unique
+  oferta           Oferta      @relation(fields: [ofertaId], references: [id])
+  userId           String
+  user             User        @relation(fields: [userId], references: [id])
+  aseguradoraId    String
+  aseguradora      Aseguradora @relation(fields: [aseguradoraId], references: [id])
+  producto         String
+  primaCents       Int
+  sumaAseguradaUsd Int
+  estado           String      @default("PENDIENTE_PAGO") // PENDIENTE_PAGO | ACTIVA | CANCELADA
+  inicio           DateTime?
+  pagadaHasta      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  pagos      Pago[]
+  siniestros Siniestro[]
+
+  @@index([userId])
+  @@index([aseguradoraId, estado])
+}
+
+model Pago {
+  id          String   @id @default(cuid())
+  polizaId    String
+  poliza      Poliza   @relation(fields: [polizaId], references: [id], onDelete: Cascade)
+  montoCents  Int
+  metodo      String   // PAGO_MOVIL | TRANSFERENCIA | TARJETA
+  banco       String
+  referencia  String
+  fechaPago   DateTime
+  estado      String   @default("EN_REVISION") // EN_REVISION | APROBADO | RECHAZADO
+  nota        String?
+  revisadoAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([polizaId])
+  @@index([estado])
+}
+
+model Siniestro {
+  id               String   @id @default(cuid())
+  polizaId         String
+  poliza           Poliza   @relation(fields: [polizaId], references: [id], onDelete: Cascade)
+  fechaOcurrencia  DateTime
+  descripcion      String
+  montoReclamadoCents Int
+  estado           String   @default("REPORTADO") // REPORTADO | EN_REVISION | APROBADO | RECHAZADO | PAGADO
+  respuesta        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([polizaId])
+  @@index([estado])
+}
+
+model Notificacion {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  titulo    String
+  mensaje   String
+  link      String?
+  leida     Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, leida])
+}
