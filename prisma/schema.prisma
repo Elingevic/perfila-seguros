@@ -1,5 +1,4 @@
-// Perfila — modelo de datos.
-// Base de datos: PostgreSQL (local y producción).
+// Perfila — modelo de datos (PostgreSQL).
 // Los "enums" se guardan como String (validados en src/lib/dominio.ts) para
 // mantener el esquema simple.
 
@@ -8,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   url       = env("DATABASE_URL")
   // Conexión directa (sin pooler) para migraciones
   directUrl = env("DATABASE_URL_UNPOOLED")
@@ -20,9 +19,11 @@ model User {
   passwordHash     String
   nombre           String
   telefono         String?
-  rol              String    // PERSONA | ASEGURADORA | ADMIN
+  rol              String    // PERSONA | INTERMEDIARIO | ASEGURADORA | ADMIN
   aseguradoraId    String?
-  aseguradora      Aseguradora? @relation(fields: [aseguradoraId], references: [id])
+  aseguradora      Aseguradora?   @relation(fields: [aseguradoraId], references: [id])
+  intermediarioId  String?
+  intermediario    Intermediario? @relation(fields: [intermediarioId], references: [id])
   aceptaTerminosAt DateTime
   activo           Boolean   @default(true)
   createdAt        DateTime  @default(now())
@@ -33,12 +34,15 @@ model User {
   notificaciones Notificacion[]
 
   @@index([aseguradoraId])
+  @@index([intermediarioId])
 }
 
+// Empresa regulada que asume el riesgo (seguros, medicina prepagada, etc.)
 model Aseguradora {
   id                   String   @id @default(cuid())
   nombre               String   @unique
   rif                  String   @unique
+  tipo                 String   @default("SEGUROS") // SEGUROS | MEDICINA_PREPAGADA | ADMINISTRADORA_RIESGOS | COOPERATIVA
   sigla                String
   color                String   @default("#1d4ed8")
   descripcion          String?
@@ -49,41 +53,74 @@ model Aseguradora {
   pagoMovilBanco       String?
   pagoMovilTelefono    String?
   cuentaBancaria       String?
-  estado              String   @default("PENDIENTE") // PENDIENTE | APROBADA | SUSPENDIDA
+  estado               String   @default("PENDIENTE") // PENDIENTE | APROBADA | SUSPENDIDA
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   usuarios User[]
+  vinculos Vinculo[]
   ofertas  Oferta[]
   polizas  Poliza[]
 }
 
+// Corredor, agente o sociedad de corretaje autorizado por la SUDEASEG
+model Intermediario {
+  id                 String   @id @default(cuid())
+  tipo               String   // AGENTE | CORREDOR | SOCIEDAD_CORRETAJE | AGENTE_MEDICINA_PREPAGADA | AGENTE_COOPERATIVA
+  nombre             String
+  documento          String   @unique // cédula (V-/E-) o RIF (J-)
+  numeroAutorizacion String   @unique // credencial SUDEASEG
+  estado             String   @default("PENDIENTE") // PENDIENTE | APROBADA | SUSPENDIDA
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  usuarios User[]
+  vinculos Vinculo[]
+  ofertas  Oferta[]
+  polizas  Poliza[]
+}
+
+// Empresas que un intermediario representa (la empresa aprueba el vínculo)
+model Vinculo {
+  id              String        @id @default(cuid())
+  intermediarioId String
+  intermediario   Intermediario @relation(fields: [intermediarioId], references: [id], onDelete: Cascade)
+  aseguradoraId   String
+  aseguradora     Aseguradora   @relation(fields: [aseguradoraId], references: [id], onDelete: Cascade)
+  estado          String        @default("PENDIENTE") // PENDIENTE | APROBADO | RECHAZADO
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([intermediarioId, aseguradoraId])
+  @@index([aseguradoraId, estado])
+}
+
 model Perfil {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // Código público y anónimo que ven las aseguradoras
-  codigo            String   @unique
-  fechaNacimiento   DateTime
-  estadoResidencia  String   // estado de Venezuela
-  ocupacion         String
-  vehiculo          String
-  dependientes      Int
-  salud             String
-  presupuestoUsd    Int
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Código público y anónimo que ven los intermediarios
+  codigo           String   @unique
+  fechaNacimiento  DateTime
+  estadoResidencia String
+  ocupacion        String
+  vehiculo         String
+  dependientes     Int
+  salud            String
+  presupuestoUsd   Int
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   solicitudes Solicitud[]
 }
 
-// Cada vez que el usuario publica su perfil se abre una solicitud
-// con las coberturas que busca. Las aseguradoras ofertan sobre ella.
+// Cada vez que el usuario publica su perfil se abre una solicitud con los
+// ramos que busca. Los intermediarios ofertan sobre ella.
 model Solicitud {
   id        String   @id @default(cuid())
   perfilId  String
   perfil    Perfil   @relation(fields: [perfilId], references: [id], onDelete: Cascade)
-  productos String   // lista separada por comas de códigos de producto
+  ramos     String   // lista separada por comas de códigos de ramo
   estado    String   @default("ABIERTA") // ABIERTA | CERRADA | EXPIRADA
   expiraAt  DateTime
   createdAt DateTime @default(now())
@@ -94,81 +131,109 @@ model Solicitud {
   @@index([perfilId])
 }
 
+// Propuesta de un intermediario, respaldada por una empresa
 model Oferta {
-  id               String      @id @default(cuid())
+  id               String        @id @default(cuid())
   solicitudId      String
-  solicitud        Solicitud   @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+  solicitud        Solicitud     @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+  intermediarioId  String
+  intermediario    Intermediario @relation(fields: [intermediarioId], references: [id])
   aseguradoraId    String
-  aseguradora      Aseguradora @relation(fields: [aseguradoraId], references: [id])
-  producto         String
-  primaCents       Int         // prima mensual en centavos de USD
+  aseguradora      Aseguradora   @relation(fields: [aseguradoraId], references: [id])
+  ramo             String
+  primaCents       Int           // prima mensual en centavos de USD
   sumaAseguradaUsd Int
-  resumen          String      // qué cubre, en lenguaje claro
-  exclusiones      String      // qué no cubre, en lenguaje claro
-  estado           String      @default("ENVIADA") // ENVIADA | ACEPTADA | RECHAZADA | RETIRADA
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  resumen          String        // qué cubre, en lenguaje claro
+  exclusiones      String        // qué no cubre, en lenguaje claro
+  estado           String        @default("ENVIADA") // ENVIADA | ACEPTADA | RECHAZADA | RETIRADA
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   poliza Poliza?
 
-  @@unique([solicitudId, aseguradoraId, producto])
+  @@unique([solicitudId, intermediarioId, aseguradoraId, ramo])
+  @@index([intermediarioId, estado])
   @@index([aseguradoraId, estado])
 }
 
 model Poliza {
-  id               String      @id @default(cuid())
-  numero           String      @unique
-  ofertaId         String      @unique
-  oferta           Oferta      @relation(fields: [ofertaId], references: [id])
+  id               String        @id @default(cuid())
+  numero           String        @unique
+  ofertaId         String        @unique
+  oferta           Oferta        @relation(fields: [ofertaId], references: [id])
   userId           String
-  user             User        @relation(fields: [userId], references: [id])
+  user             User          @relation(fields: [userId], references: [id])
   aseguradoraId    String
-  aseguradora      Aseguradora @relation(fields: [aseguradoraId], references: [id])
-  producto         String
+  aseguradora      Aseguradora   @relation(fields: [aseguradoraId], references: [id])
+  intermediarioId  String
+  intermediario    Intermediario @relation(fields: [intermediarioId], references: [id])
+  ramo             String
   primaCents       Int
   sumaAseguradaUsd Int
-  estado           String      @default("PENDIENTE_PAGO") // PENDIENTE_PAGO | ACTIVA | CANCELADA
+  estado           String        @default("PENDIENTE_PAGO") // PENDIENTE_PAGO | ACTIVA | CANCELADA
   inicio           DateTime?
   pagadaHasta      DateTime?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   pagos      Pago[]
   siniestros Siniestro[]
+  claves     ClaveEmergencia[]
 
   @@index([userId])
   @@index([aseguradoraId, estado])
+  @@index([intermediarioId])
 }
 
 model Pago {
-  id          String   @id @default(cuid())
-  polizaId    String
-  poliza      Poliza   @relation(fields: [polizaId], references: [id], onDelete: Cascade)
-  montoCents  Int
-  metodo      String   // PAGO_MOVIL | TRANSFERENCIA | TARJETA
-  banco       String
-  referencia  String
-  fechaPago   DateTime
-  estado      String   @default("EN_REVISION") // EN_REVISION | APROBADO | RECHAZADO
-  nota        String?
-  revisadoAt  DateTime?
-  createdAt   DateTime @default(now())
+  id         String    @id @default(cuid())
+  polizaId   String
+  poliza     Poliza    @relation(fields: [polizaId], references: [id], onDelete: Cascade)
+  montoCents Int
+  metodo     String
+  banco      String
+  referencia String
+  fechaPago  DateTime
+  estado     String    @default("EN_REVISION") // EN_REVISION | APROBADO | RECHAZADO
+  nota       String?
+  revisadoAt DateTime?
+  createdAt  DateTime  @default(now())
 
   @@index([polizaId])
   @@index([estado])
 }
 
 model Siniestro {
-  id               String   @id @default(cuid())
-  polizaId         String
-  poliza           Poliza   @relation(fields: [polizaId], references: [id], onDelete: Cascade)
-  fechaOcurrencia  DateTime
-  descripcion      String
+  id                  String   @id @default(cuid())
+  polizaId            String
+  poliza              Poliza   @relation(fields: [polizaId], references: [id], onDelete: Cascade)
+  fechaOcurrencia     DateTime
+  descripcion         String
   montoReclamadoCents Int
-  estado           String   @default("REPORTADO") // REPORTADO | EN_REVISION | APROBADO | RECHAZADO | PAGADO
-  respuesta        String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  estado              String   @default("REPORTADO") // REPORTADO | EN_REVISION | APROBADO | RECHAZADO | PAGADO
+  respuesta           String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([polizaId])
+  @@index([estado])
+}
+
+// Clave de atención de emergencia (medicina prepagada)
+model ClaveEmergencia {
+  id         String   @id @default(cuid())
+  polizaId   String
+  poliza     Poliza   @relation(fields: [polizaId], references: [id], onDelete: Cascade)
+  codigo     String   @unique
+  paciente   String
+  parentesco String
+  clinica    String
+  motivo     String
+  telefono   String
+  estado     String   @default("EMITIDA") // EMITIDA | UTILIZADA | ANULADA
+  venceAt    DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([polizaId])
   @@index([estado])

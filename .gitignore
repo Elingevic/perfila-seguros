@@ -46,3 +46,9 @@ test-results/
 playwright-report/
 
 .vercel
+/.pgdata
+
+# Skills de agentes instaladas por la integración de Neon
+/.agents
+/.claude
+/skills-lock.json

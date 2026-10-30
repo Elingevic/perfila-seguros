@@ -6,7 +6,7 @@ import { Badge, BotonLink, Encabezado, Tarjeta } from "@/components/ui";
 import { requerirRol } from "@/lib/dal";
 import { db } from "@/lib/db";
 import {
-  OCUPACIONES, PRODUCTOS, SALUD, VEHICULOS, edadDesde, fecha, parseProductos,
+  OCUPACIONES, RAMOS, SALUD, VEHICULOS, edadDesde, fecha, parseRamos,
   type Ocupacion, type Salud, type Vehiculo,
 } from "@/lib/dominio";
 
@@ -68,11 +68,11 @@ export default async function PerfilPage() {
             {solicitud ? (
               <>
                 <p className="mt-2 text-sm text-slate-600">
-                  Las aseguradoras pueden enviarte ofertas hasta el <b>{fecha(solicitud.expiraAt)}</b> para:
+                  Los corredores y agentes pueden enviarte ofertas hasta el <b>{fecha(solicitud.expiraAt)}</b> para:
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {parseProductos(solicitud.productos).map((p) => (
-                    <Badge key={p}>{PRODUCTOS[p].icono} {PRODUCTOS[p].nombre}</Badge>
+                  {parseRamos(solicitud.ramos).map((p) => (
+                    <Badge key={p}>{RAMOS[p].icono} {RAMOS[p].nombre}</Badge>
                   ))}
                 </div>
                 <form action={cerrarSolicitud.bind(null, solicitud.id)} className="mt-5">
@@ -81,16 +81,16 @@ export default async function PerfilPage() {
               </>
             ) : (
               <>
-                <p className="mt-2 text-sm text-slate-600">Publica tu perfil para que las aseguradoras te envíen ofertas.</p>
+                <p className="mt-2 text-sm text-slate-600">Publica tu perfil para que corredores y agentes te envíen ofertas.</p>
                 <BotonLink href="/app/perfil/crear" className="mt-4">Publicar perfil</BotonLink>
               </>
             )}
           </Tarjeta>
           <Tarjeta className="bg-marca-50/50">
-            <h2 className="font-semibold">🔒 ¿Qué ven las aseguradoras?</h2>
+            <h2 className="font-semibold">🔒 ¿Qué ven los intermediarios?</h2>
             <p className="mt-2 text-sm text-slate-600">
               Solo tu código, edad, estado, ocupación, vehículo, número de dependientes, presupuesto y las coberturas que buscas.
-              Tu nombre, correo y teléfono solo se comparten con la aseguradora cuya oferta aceptes.
+              Tu nombre, correo y teléfono solo se comparten con el intermediario y la empresa de la oferta que aceptes.
             </p>
           </Tarjeta>
         </div>

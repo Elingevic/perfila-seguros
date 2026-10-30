@@ -1,47 +1,44 @@
 import Link from "next/link";
-import { BotonLink, Encabezado, Kpi, Tarjeta } from "@/components/ui";
+import { Encabezado, Kpi, Tarjeta } from "@/components/ui";
 import { requerirAseguradora } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { PRODUCTOS, haceCuanto, usd, type Producto } from "@/lib/dominio";
+import { RAMOS, TIPOS_EMPRESA, haceCuanto, usd, type Ramo, type TipoEmpresa } from "@/lib/dominio";
 
 export default async function ResumenAseguradoraPage() {
   const user = await requerirAseguradora();
   const id = user.aseguradoraId;
-  const ahora = new Date();
 
-  const [abiertas, enviadas, aceptadas, totalOfertas, activas, pagosPendientes, siniestrosAbiertos, recientes] = await Promise.all([
-    db.solicitud.count({ where: { estado: "ABIERTA", expiraAt: { gt: ahora } } }),
-    db.oferta.count({ where: { aseguradoraId: id, estado: "ENVIADA" } }),
-    db.oferta.count({ where: { aseguradoraId: id, estado: "ACEPTADA" } }),
-    db.oferta.count({ where: { aseguradoraId: id, estado: { in: ["ENVIADA", "ACEPTADA", "RECHAZADA"] } } }),
-    db.poliza.findMany({ where: { aseguradoraId: id, estado: "ACTIVA" }, select: { primaCents: true } }),
-    db.pago.count({ where: { estado: "EN_REVISION", poliza: { aseguradoraId: id } } }),
-    db.siniestro.count({ where: { estado: { in: ["REPORTADO", "EN_REVISION"] }, poliza: { aseguradoraId: id } } }),
-    db.poliza.findMany({
-      where: { aseguradoraId: id },
-      orderBy: { createdAt: "desc" },
-      take: 6,
-      include: { user: { select: { nombre: true } } },
-    }),
-  ]);
+  const [intermediarios, vinculosPendientes, ofertasVigentes, activas, pagosPendientes, siniestrosAbiertos, clavesVigentes, recientes] =
+    await Promise.all([
+      db.vinculo.count({ where: { aseguradoraId: id, estado: "APROBADO" } }),
+      db.vinculo.count({ where: { aseguradoraId: id, estado: "PENDIENTE" } }),
+      db.oferta.count({ where: { aseguradoraId: id, estado: "ENVIADA" } }),
+      db.poliza.findMany({ where: { aseguradoraId: id, estado: "ACTIVA" }, select: { primaCents: true } }),
+      db.pago.count({ where: { estado: "EN_REVISION", poliza: { aseguradoraId: id } } }),
+      db.siniestro.count({ where: { estado: { in: ["REPORTADO", "EN_REVISION"] }, poliza: { aseguradoraId: id } } }),
+      db.claveEmergencia.count({ where: { estado: "EMITIDA", venceAt: { gt: new Date() }, poliza: { aseguradoraId: id } } }),
+      db.poliza.findMany({
+        where: { aseguradoraId: id },
+        orderBy: { createdAt: "desc" },
+        take: 6,
+        include: { user: { select: { nombre: true } }, intermediario: { select: { nombre: true } } },
+      }),
+    ]);
 
-  const decididas = totalOfertas - enviadas;
-  const conversion = decididas > 0 ? Math.round((aceptadas / decididas) * 100) : 0;
   const primas = activas.reduce((s, p) => s + p.primaCents, 0);
 
   return (
     <>
       <Encabezado
         titulo={`Hola, ${user.nombre.split(" ")[0]}`}
-        descripcion={`Resumen de ${user.aseguradora.nombre} en Perfila.`}
-        accion={<BotonLink href="/aseguradora/perfiles">Ver perfiles buscando seguro</BotonLink>}
+        descripcion={`${user.aseguradora.nombre} · ${TIPOS_EMPRESA[user.aseguradora.tipo as TipoEmpresa].nombre}`}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Kpi valor={abiertas} etiqueta="Perfiles recibiendo ofertas" />
-        <Kpi valor={enviadas} etiqueta="Ofertas en espera" />
-        <Kpi valor={`${conversion}%`} etiqueta="Conversión de ofertas" />
-        <Kpi valor={usd(primas)} etiqueta={`Primas mensuales (${activas.length} pólizas)`} />
+        <Kpi valor={intermediarios} etiqueta="Intermediarios vinculados" />
+        <Kpi valor={ofertasVigentes} etiqueta="Ofertas vigentes con tu respaldo" />
+        <Kpi valor={activas.length} etiqueta="Pólizas activas" />
+        <Kpi valor={usd(primas)} etiqueta="Primas mensuales activas" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -51,14 +48,16 @@ export default async function ResumenAseguradoraPage() {
             <Link href="/aseguradora/polizas" className="text-sm font-semibold text-marca-600">Ver todas</Link>
           </div>
           {recientes.length === 0 ? (
-            <p className="text-sm text-slate-500">Aún no tienes pólizas. Envía ofertas a los perfiles abiertos para empezar.</p>
+            <p className="text-sm text-slate-500">Aún no hay pólizas. Aprueba intermediarios para que ofrezcan tus productos.</p>
           ) : (
             <ul className="divide-y divide-slate-100">
               {recientes.map((p) => (
                 <li key={p.id} className="flex items-center justify-between py-3 text-sm">
                   <div>
-                    <div className="font-medium">{PRODUCTOS[p.producto as Producto].icono} {PRODUCTOS[p.producto as Producto].nombre}</div>
-                    <div className="text-xs text-slate-500">{p.user.nombre} · {p.numero} · {haceCuanto(p.createdAt)}</div>
+                    <div className="font-medium">{RAMOS[p.ramo as Ramo].icono} {RAMOS[p.ramo as Ramo].nombre}</div>
+                    <div className="text-xs text-slate-500">
+                      {p.user.nombre} · vía {p.intermediario.nombre} · {p.numero} · {haceCuanto(p.createdAt)}
+                    </div>
                   </div>
                   <b>{usd(p.primaCents)}/mes</b>
                 </li>
@@ -68,9 +67,10 @@ export default async function ResumenAseguradoraPage() {
         </Tarjeta>
 
         <div className="space-y-4">
+          {clavesVigentes > 0 && <Pendiente href="/aseguradora/claves" icono="🚑" n={clavesVigentes} texto="claves de emergencia vigentes" />}
           <Pendiente href="/aseguradora/polizas?tab=pagos" icono="💳" n={pagosPendientes} texto="pagos por verificar" />
           <Pendiente href="/aseguradora/siniestros" icono="🆘" n={siniestrosAbiertos} texto="siniestros por atender" />
-          <Pendiente href="/aseguradora/ofertas" icono="📨" n={enviadas} texto="ofertas esperando respuesta" />
+          <Pendiente href="/aseguradora/intermediarios" icono="🤝" n={vinculosPendientes} texto="intermediarios por aprobar" />
         </div>
       </div>
     </>

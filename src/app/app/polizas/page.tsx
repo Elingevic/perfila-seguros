@@ -3,7 +3,7 @@ import Link from "next/link";
 import { BadgeEstado, BotonLink, Encabezado, LogoAseguradora, Tarjeta, Vacio } from "@/components/ui";
 import { requerirRol } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { ESTADO_POLIZA, PRODUCTOS, fecha, usd, usdEntero, type Producto } from "@/lib/dominio";
+import { ESTADO_POLIZA, RAMOS, fecha, usd, usdEntero, type Ramo } from "@/lib/dominio";
 
 export const metadata: Metadata = { title: "Mis pólizas" };
 
@@ -26,7 +26,7 @@ export default async function PolizasPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {polizas.map((p) => {
-            const prod = PRODUCTOS[p.producto as Producto];
+            const prod = RAMOS[p.ramo as Ramo];
             return (
               <Link key={p.id} href={`/app/polizas/${p.id}`}>
                 <Tarjeta className="transition hover:border-marca-200 hover:shadow-sm">

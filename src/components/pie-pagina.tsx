@@ -12,11 +12,12 @@ export function PiePagina() {
         <nav className="flex gap-6">
           <Link href="/terminos" className="hover:text-slate-900">Términos</Link>
           <Link href="/privacidad" className="hover:text-slate-900">Privacidad</Link>
-          <Link href="/registro/aseguradora" className="hover:text-slate-900">Aseguradoras</Link>
+          <Link href="/registro/intermediario" className="hover:text-slate-900">Corredores y agentes</Link>
+          <Link href="/registro/aseguradora" className="hover:text-slate-900">Empresas</Link>
         </nav>
         <p className="w-full text-xs">
-          Perfila es una plataforma tecnológica. La contratación de pólizas se realiza con aseguradoras autorizadas y a través de
-          intermediarios habilitados conforme a la normativa vigente en Venezuela.
+          Perfila es una plataforma tecnológica. Las ofertas las presentan intermediarios autorizados y las respaldan empresas autorizadas
+          por la SUDEASEG, conforme a la normativa vigente en Venezuela.
         </p>
       </div>
     </footer>

@@ -4,9 +4,9 @@ import { BotonEnviar } from "@/components/boton-enviar";
 import { BadgeEstado, Encabezado, LogoAseguradora, Tarjeta, Vacio } from "@/components/ui";
 import { requerirRol } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { ESTADO_ASEGURADORA, fecha } from "@/lib/dominio";
+import { ESTADO_ASEGURADORA, TIPOS_EMPRESA, fecha, type TipoEmpresa } from "@/lib/dominio";
 
-export const metadata: Metadata = { title: "Aseguradoras" };
+export const metadata: Metadata = { title: "Empresas" };
 
 export default async function AseguradorasAdminPage() {
   await requerirRol("ADMIN");
@@ -20,9 +20,9 @@ export default async function AseguradorasAdminPage() {
 
   return (
     <>
-      <Encabezado titulo="Aseguradoras" descripcion="Verifica que cada empresa esté autorizada por la SUDEASEG antes de aprobarla." />
+      <Encabezado titulo="Empresas" descripcion="Verifica que cada empresa esté autorizada por la SUDEASEG antes de aprobarla." />
       {aseguradoras.length === 0 ? (
-        <Vacio icono="🏢" titulo="No hay aseguradoras registradas" />
+        <Vacio icono="🏢" titulo="No hay empresas registradas" />
       ) : (
         <div className="space-y-4">
           {aseguradoras.map((a) => (
@@ -34,7 +34,7 @@ export default async function AseguradorasAdminPage() {
                   <BadgeEstado estado={a.estado} mapa={ESTADO_ASEGURADORA} />
                 </div>
                 <p className="text-xs text-slate-500">
-                  RIF {a.rif} · registrada el {fecha(a.createdAt)} · {a._count.ofertas} ofertas · {a._count.polizas} pólizas
+                  {TIPOS_EMPRESA[a.tipo as TipoEmpresa]?.nombre} · RIF {a.rif} · registrada el {fecha(a.createdAt)} · {a._count.ofertas} ofertas · {a._count.polizas} pólizas
                 </p>
                 <p className="text-xs text-slate-500">
                   {a.usuarios.map((u) => `${u.nombre} (${u.email}, ${u.telefono ?? "s/t"})`).join(" · ")}

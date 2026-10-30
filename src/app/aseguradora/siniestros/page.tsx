@@ -4,7 +4,7 @@ import { BotonEnviar } from "@/components/boton-enviar";
 import { BadgeEstado, Encabezado, Select, Tarjeta, Textarea, Vacio } from "@/components/ui";
 import { requerirAseguradora } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { ESTADO_SINIESTRO, PRODUCTOS, fecha, haceCuanto, usd, usdEntero, type Producto } from "@/lib/dominio";
+import { ESTADO_SINIESTRO, RAMOS, fecha, haceCuanto, usd, usdEntero, type Ramo } from "@/lib/dominio";
 
 export const metadata: Metadata = { title: "Siniestros" };
 
@@ -35,7 +35,7 @@ export default async function SiniestrosPage() {
                     <BadgeEstado estado={s.estado} mapa={ESTADO_SINIESTRO} />
                   </div>
                   <p className="text-xs text-slate-500">
-                    Póliza {s.poliza.numero} · {PRODUCTOS[s.poliza.producto as Producto].nombre} (hasta {usdEntero(s.poliza.sumaAseguradaUsd)}) ·
+                    Póliza {s.poliza.numero} · {RAMOS[s.poliza.ramo as Ramo].nombre} (hasta {usdEntero(s.poliza.sumaAseguradaUsd)}) ·
                     ocurrió el {fecha(s.fechaOcurrencia)} · reportado {haceCuanto(s.createdAt)}
                   </p>
                   <p className="text-xs text-slate-500">{s.poliza.user.nombre} · {s.poliza.user.telefono} · {s.poliza.user.email}</p>

@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { borrarSesion, crearSesion } from "@/lib/session";
-import { Ingreso, RegistroAseguradora, RegistroPersona, erroresDe, type EstadoForm } from "@/lib/esquemas";
+import { Ingreso, RegistroAseguradora, RegistroIntermediario, RegistroPersona, erroresDe, type EstadoForm } from "@/lib/esquemas";
 import { RUTA_INICIO, type Rol } from "@/lib/dominio";
 
 // Hash ficticio para que el tiempo de respuesta no revele si el correo existe.
@@ -40,7 +40,7 @@ export async function registrarPersona(_: EstadoForm, formData: FormData): Promi
 export async function registrarAseguradora(_: EstadoForm, formData: FormData): Promise<EstadoForm> {
   const r = RegistroAseguradora.safeParse(Object.fromEntries(formData));
   if (!r.success) return { errores: erroresDe(r.error) };
-  const { empresa, rif, nombre, email, telefono, password } = r.data;
+  const { tipo, empresa, rif, nombre, email, telefono, password } = r.data;
   const rifNormal = rif.replace(/^J-?(\d{8})-?(\d)$/, "J-$1-$2");
 
   if (await db.user.findUnique({ where: { email } })) {
@@ -48,7 +48,7 @@ export async function registrarAseguradora(_: EstadoForm, formData: FormData): P
   }
   const existente = await db.aseguradora.findFirst({ where: { OR: [{ rif: rifNormal }, { nombre: empresa }] } });
   if (existente) {
-    return { errores: { rif: ["Esta aseguradora ya está registrada. Pide a tu administrador que te invite."] } };
+    return { errores: { rif: ["Esta empresa ya está registrada. Pide a tu administrador que te invite."] } };
   }
 
   const sigla = empresa
@@ -59,7 +59,7 @@ export async function registrarAseguradora(_: EstadoForm, formData: FormData): P
     .join("") || empresa.slice(0, 2).toUpperCase();
 
   const user = await db.$transaction(async (tx) => {
-    const aseguradora = await tx.aseguradora.create({ data: { nombre: empresa, rif: rifNormal, sigla } });
+    const aseguradora = await tx.aseguradora.create({ data: { nombre: empresa, rif: rifNormal, sigla, tipo } });
     return tx.user.create({
       data: {
         nombre, email, telefono, rol: "ASEGURADORA", aseguradoraId: aseguradora.id,
@@ -69,20 +69,45 @@ export async function registrarAseguradora(_: EstadoForm, formData: FormData): P
     });
   });
 
-  const admins = await db.user.findMany({ where: { rol: "ADMIN", activo: true }, select: { id: true } });
-  if (admins.length) {
-    await db.notificacion.createMany({
-      data: admins.map((a) => ({
-        userId: a.id,
-        titulo: "Nueva aseguradora por aprobar",
-        mensaje: `${empresa} (${rifNormal}) solicitó acceso a Perfila.`,
-        link: "/admin/aseguradoras",
-      })),
-    });
-  }
-
+  await avisarAdmins("Nueva empresa por aprobar", `${empresa} (${rifNormal}) solicitó acceso a Perfila.`, "/admin/aseguradoras");
   await crearSesion({ userId: user.id, rol: "ASEGURADORA" });
   redirect("/aseguradora");
+}
+
+export async function registrarIntermediario(_: EstadoForm, formData: FormData): Promise<EstadoForm> {
+  const r = RegistroIntermediario.safeParse(Object.fromEntries(formData));
+  if (!r.success) return { errores: erroresDe(r.error) };
+  const { tipo, razonSocial, documento, numeroAutorizacion, nombre, email, telefono, password } = r.data;
+  const doc = documento.replace(/^([VEJ])-?/, "$1-");
+
+  if (await db.user.findUnique({ where: { email } })) {
+    return { errores: { email: ["Ya existe una cuenta con este correo."] } };
+  }
+  if (await db.intermediario.findFirst({ where: { OR: [{ documento: doc }, { numeroAutorizacion }] } })) {
+    return { errores: { numeroAutorizacion: ["Este intermediario ya está registrado."] } };
+  }
+
+  const user = await db.$transaction(async (tx) => {
+    const intermediario = await tx.intermediario.create({ data: { tipo, nombre: razonSocial, documento: doc, numeroAutorizacion } });
+    return tx.user.create({
+      data: {
+        nombre, email, telefono, rol: "INTERMEDIARIO", intermediarioId: intermediario.id,
+        passwordHash: await bcrypt.hash(password, 10),
+        aceptaTerminosAt: new Date(),
+      },
+    });
+  });
+
+  await avisarAdmins("Nuevo intermediario por verificar", `${razonSocial} (autorización ${numeroAutorizacion}) solicitó acceso.`, "/admin/intermediarios");
+  await crearSesion({ userId: user.id, rol: "INTERMEDIARIO" });
+  redirect("/intermediario");
+}
+
+async function avisarAdmins(titulo: string, mensaje: string, link: string) {
+  const admins = await db.user.findMany({ where: { rol: "ADMIN", activo: true }, select: { id: true } });
+  if (admins.length) {
+    await db.notificacion.createMany({ data: admins.map((a) => ({ userId: a.id, titulo, mensaje, link })) });
+  }
 }
 
 export async function ingresar(_: EstadoForm, formData: FormData): Promise<EstadoForm> {

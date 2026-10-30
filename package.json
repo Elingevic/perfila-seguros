@@ -13,7 +13,8 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && prisma migrate deploy && tsx prisma/seed-si-vacia.ts && next build"
+    "vercel-build": "prisma generate && prisma migrate deploy && tsx prisma/seed-si-vacia.ts && next build",
+    "db:local": "node scripts/db-local.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -31,8 +32,10 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "embedded-postgres": "^18.6.0-beta.19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "pg": "^8.23.1",
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",

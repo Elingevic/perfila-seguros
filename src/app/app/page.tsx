@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { requerirRol } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { ESTADO_POLIZA, PRODUCTOS, fecha, haceCuanto, parseProductos, usd, type Producto } from "@/lib/dominio";
+import { ESTADO_POLIZA, RAMOS, fecha, haceCuanto, parseRamos, usd, type Ramo } from "@/lib/dominio";
 import { Badge, BadgeEstado, BotonLink, Encabezado, Kpi, LogoAseguradora, Tarjeta } from "@/components/ui";
+import { ModalClaveEmergencia } from "@/components/modal-clave-emergencia";
+import { polizasConClave } from "@/lib/consultas";
 
 export default async function InicioPersonaPage() {
   const user = await requerirRol("PERSONA");
-  const [perfil, polizas, notificaciones] = await Promise.all([
+  const [perfil, polizas, notificaciones, conClave, contacto] = await Promise.all([
     db.perfil.findUnique({
       where: { userId: user.id },
       include: {
@@ -23,6 +25,8 @@ export default async function InicioPersonaPage() {
       orderBy: { createdAt: "desc" },
     }),
     db.notificacion.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
+    polizasConClave(user.id),
+    db.user.findUnique({ where: { id: user.id }, select: { telefono: true } }),
   ]);
 
   const nombre = user.nombre.split(" ")[0];
@@ -33,7 +37,7 @@ export default async function InicioPersonaPage() {
         <div className="text-5xl">👋</div>
         <h1 className="mt-4 text-3xl font-bold tracking-tight">¡Hola, {nombre}!</h1>
         <p className="mt-3 text-lg text-slate-600">
-          Crea tu perfil asegurador en 2 minutos y las aseguradoras empezarán a enviarte ofertas.
+          Crea tu perfil asegurador en 2 minutos y los corredores y agentes autorizados empezarán a enviarte ofertas.
         </p>
         <BotonLink href="/app/perfil/crear" tamano="lg" className="mt-8">Crear mi perfil</BotonLink>
       </div>
@@ -47,7 +51,11 @@ export default async function InicioPersonaPage() {
 
   return (
     <>
-      <Encabezado titulo={`Hola, ${nombre}`} descripcion="Este es el resumen de tu protección." />
+      <Encabezado
+        titulo={`Hola, ${nombre}`}
+        descripcion="Este es el resumen de tu protección."
+        accion={<ModalClaveEmergencia polizas={conClave} titular={user.nombre} telefono={contacto?.telefono} />}
+      />
 
       {pendientes.length > 0 && (
         <Tarjeta className="mb-6 border-amber-200 bg-amber-50">
@@ -55,7 +63,7 @@ export default async function InicioPersonaPage() {
             <span className="text-2xl">💳</span>
             <div className="flex-1">
               <b>Tienes {pendientes.length} póliza{pendientes.length > 1 ? "s" : ""} esperando tu pago</b>
-              <p className="text-sm text-amber-800">Se activan apenas la aseguradora confirme el pago.</p>
+              <p className="text-sm text-amber-800">Se activan apenas la empresa confirme el pago.</p>
             </div>
             <BotonLink href={`/app/polizas/${pendientes[0].id}`}>Pagar ahora</BotonLink>
           </div>
@@ -87,8 +95,8 @@ export default async function InicioPersonaPage() {
             </div>
             {solicitud && (
               <div className="mt-4 flex flex-wrap gap-2">
-                {parseProductos(solicitud.productos).map((p) => (
-                  <Badge key={p}>{PRODUCTOS[p].icono} {PRODUCTOS[p].nombre}</Badge>
+                {parseRamos(solicitud.ramos).map((p) => (
+                  <Badge key={p}>{RAMOS[p].icono} {RAMOS[p].nombre}</Badge>
                 ))}
               </div>
             )}
@@ -116,7 +124,7 @@ export default async function InicioPersonaPage() {
                     <Link href={`/app/polizas/${p.id}`} className="flex items-center gap-3 py-3 hover:opacity-80">
                       <LogoAseguradora sigla={p.aseguradora.sigla} color={p.aseguradora.color} tamano={36} />
                       <div className="flex-1">
-                        <div className="font-medium">{PRODUCTOS[p.producto as Producto].nombre}</div>
+                        <div className="font-medium">{RAMOS[p.ramo as Ramo].nombre}</div>
                         <div className="text-xs text-slate-500">{p.aseguradora.nombre} · {p.numero}</div>
                       </div>
                       <div className="text-right">

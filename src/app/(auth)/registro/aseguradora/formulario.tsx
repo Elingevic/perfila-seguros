@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { registrarAseguradora } from "@/actions/auth";
 import { BotonEnviar } from "@/components/boton-enviar";
-import { Alerta, Campo, Input } from "@/components/ui";
+import { Alerta, Campo, Input, Select } from "@/components/ui";
+import { TIPOS_EMPRESA } from "@/lib/dominio";
 
 export function FormularioAseguradora() {
   const [estado, accion] = useActionState(registrarAseguradora, undefined);
@@ -12,8 +13,14 @@ export function FormularioAseguradora() {
   return (
     <form action={accion} className="space-y-4">
       {estado?.mensaje && <Alerta>{estado.mensaje}</Alerta>}
+      <Campo etiqueta="Tipo de empresa" error={e?.tipo}>
+        <Select name="tipo" defaultValue="" required>
+          <option value="" disabled>Selecciona…</option>
+          {Object.entries(TIPOS_EMPRESA).map(([k, v]) => <option key={k} value={k}>{v.nombre}</option>)}
+        </Select>
+      </Campo>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Campo etiqueta="Empresa aseguradora" error={e?.empresa}>
+        <Campo etiqueta="Nombre de la empresa" error={e?.empresa}>
           <Input name="empresa" required />
         </Campo>
         <Campo etiqueta="RIF" error={e?.rif}>

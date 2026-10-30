@@ -14,3 +14,11 @@ export async function notificarAseguradora(aseguradoraId: string, aviso: Aviso) 
     await db.notificacion.createMany({ data: usuarios.map((u) => ({ userId: u.id, ...aviso })) });
   }
 }
+
+/** Notifica a todos los usuarios activos de un intermediario. */
+export async function notificarIntermediario(intermediarioId: string, aviso: Aviso) {
+  const usuarios = await db.user.findMany({ where: { intermediarioId, activo: true }, select: { id: true } });
+  if (usuarios.length) {
+    await db.notificacion.createMany({ data: usuarios.map((u) => ({ userId: u.id, ...aviso })) });
+  }
+}

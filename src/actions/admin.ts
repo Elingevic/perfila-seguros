@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requerirRol } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { ESTADO_ASEGURADORA } from "@/lib/dominio";
-import { notificarAseguradora } from "@/lib/notificar";
+import { notificarAseguradora, notificarIntermediario } from "@/lib/notificar";
 
 export async function cambiarEstadoAseguradora(id: string, estado: string) {
   await requerirRol("ADMIN");
@@ -16,9 +16,9 @@ export async function cambiarEstadoAseguradora(id: string, estado: string) {
     await db.oferta.updateMany({ where: { aseguradoraId: id, estado: "ENVIADA" }, data: { estado: "RETIRADA" } });
   }
   await notificarAseguradora(a.id, {
-    titulo: estado === "APROBADA" ? "¡Tu aseguradora fue aprobada!" : `Estado actualizado: ${ESTADO_ASEGURADORA[estado as keyof typeof ESTADO_ASEGURADORA].label}`,
-    mensaje: estado === "APROBADA" ? "Ya puedes ver perfiles y enviar ofertas." : "Contacta a soporte si tienes dudas.",
-    link: estado === "APROBADA" ? "/aseguradora/perfiles" : "/aseguradora",
+    titulo: estado === "APROBADA" ? "¡Tu empresa fue aprobada!" : `Estado actualizado: ${ESTADO_ASEGURADORA[estado as keyof typeof ESTADO_ASEGURADORA].label}`,
+    mensaje: estado === "APROBADA" ? "Los intermediarios ya pueden solicitar vincularse a tu empresa." : "Contacta a soporte si tienes dudas.",
+    link: estado === "APROBADA" ? "/aseguradora/intermediarios" : "/aseguradora",
   });
   revalidatePath("/admin", "layout");
 }
@@ -28,4 +28,20 @@ export async function cambiarActivoUsuario(id: string, activo: boolean) {
   if (id === admin.id) return; // no desactivarse a sí mismo
   await db.user.update({ where: { id }, data: { activo } });
   revalidatePath("/admin/usuarios");
+}
+
+export async function cambiarEstadoIntermediario(id: string, estado: string) {
+  await requerirRol("ADMIN");
+  if (!(estado in ESTADO_ASEGURADORA)) return;
+
+  await db.intermediario.update({ where: { id }, data: { estado } });
+  if (estado === "SUSPENDIDA") {
+    await db.oferta.updateMany({ where: { intermediarioId: id, estado: "ENVIADA" }, data: { estado: "RETIRADA" } });
+  }
+  await notificarIntermediario(id, {
+    titulo: estado === "APROBADA" ? "¡Tu registro fue verificado!" : `Estado actualizado: ${ESTADO_ASEGURADORA[estado as keyof typeof ESTADO_ASEGURADORA].label}`,
+    mensaje: estado === "APROBADA" ? "Solicita vínculo con las empresas que representas para empezar a ofertar." : "Contacta a soporte si tienes dudas.",
+    link: estado === "APROBADA" ? "/intermediario/empresas" : "/intermediario",
+  });
+  revalidatePath("/admin", "layout");
 }

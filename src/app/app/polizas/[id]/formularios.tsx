@@ -57,7 +57,7 @@ export function FormularioSiniestro({ polizaId }: { polizaId: string }) {
           <Input name="montoReclamadoUsd" type="number" min={1} step="0.01" required />
         </Campo>
       </div>
-      <Campo etiqueta="¿Qué pasó?" error={e?.descripcion} ayuda="Incluye lugar, hora y cómo ocurrió. La aseguradora puede pedirte facturas o informes.">
+      <Campo etiqueta="¿Qué pasó?" error={e?.descripcion} ayuda="Incluye lugar, hora y cómo ocurrió. La empresa puede pedirte facturas o informes.">
         <Textarea name="descripcion" required minLength={20} />
       </Campo>
       <BotonEnviar variante="peligro" pendiente="Enviando…">Enviar reporte</BotonEnviar>

@@ -6,10 +6,11 @@ import { jwtVerify } from "jose";
 
 const AREAS: { prefijo: string; rol: string }[] = [
   { prefijo: "/app", rol: "PERSONA" },
+  { prefijo: "/intermediario", rol: "INTERMEDIARIO" },
   { prefijo: "/aseguradora", rol: "ASEGURADORA" },
   { prefijo: "/admin", rol: "ADMIN" },
 ];
-const INICIO: Record<string, string> = { PERSONA: "/app", ASEGURADORA: "/aseguradora", ADMIN: "/admin" };
+const INICIO: Record<string, string> = { PERSONA: "/app", INTERMEDIARIO: "/intermediario", ASEGURADORA: "/aseguradora", ADMIN: "/admin" };
 const SOLO_INVITADOS = ["/ingresar", "/registro"];
 
 async function rolDeSesion(req: NextRequest): Promise<string | null> {
@@ -46,5 +47,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/aseguradora/:path*", "/admin/:path*", "/ingresar", "/registro/:path*"],
+  matcher: ["/app/:path*", "/intermediario/:path*", "/aseguradora/:path*", "/admin/:path*", "/ingresar", "/registro/:path*"],
 };

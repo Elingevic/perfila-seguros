@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { aceptarOferta } from "@/actions/persona";
 import { Boton } from "@/components/ui";
 
-export function BotonAceptar({ ofertaId, aseguradora, prima }: { ofertaId: string; aseguradora: string; prima: string }) {
+export function BotonAceptar({ ofertaId, intermediario, aseguradora, prima }: { ofertaId: string; intermediario: string; aseguradora: string; prima: string }) {
   const [confirmar, setConfirmar] = useState(false);
   const [error, setError] = useState<string>();
   const [pendiente, iniciar] = useTransition();
@@ -16,7 +16,7 @@ export function BotonAceptar({ ofertaId, aseguradora, prima }: { ofertaId: strin
   return (
     <div className="rounded-xl bg-marca-50 p-3">
       <p className="text-sm text-marca-900">
-        Vas a contratar con <b>{aseguradora}</b> por <b>{prima}/mes</b>. Compartiremos tu nombre y contacto con la aseguradora para emitir la póliza.
+        Vas a contratar con <b>{aseguradora}</b> a través de <b>{intermediario}</b> por <b>{prima}/mes</b>. Compartiremos tu nombre y contacto con ambos para emitir la póliza.
       </p>
       {error && <p className="mt-2 text-sm font-medium text-red-600">{error}</p>}
       <div className="mt-3 flex gap-2">

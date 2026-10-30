@@ -12,8 +12,9 @@ export const usuarioActual = cache(async () => {
   const user = await db.user.findUnique({
     where: { id: sesion.userId },
     select: {
-      id: true, nombre: true, email: true, rol: true, activo: true, aseguradoraId: true,
-      aseguradora: { select: { id: true, nombre: true, sigla: true, color: true, estado: true } },
+      id: true, nombre: true, email: true, rol: true, activo: true, aseguradoraId: true, intermediarioId: true,
+      aseguradora: { select: { id: true, nombre: true, sigla: true, color: true, estado: true, tipo: true } },
+      intermediario: { select: { id: true, nombre: true, tipo: true, estado: true, numeroAutorizacion: true } },
     },
   });
   if (!user || !user.activo) return null;
@@ -30,9 +31,16 @@ export async function requerirRol(...roles: Rol[]) {
   return user;
 }
 
-/** Usuario de aseguradora con la aseguradora aprobada. */
+/** Usuario de una empresa (aseguradora, medicina prepagada, etc.). */
 export async function requerirAseguradora() {
   const user = await requerirRol("ASEGURADORA");
   if (!user.aseguradora || !user.aseguradoraId) redirect("/ingresar");
   return { ...user, aseguradoraId: user.aseguradoraId, aseguradora: user.aseguradora };
+}
+
+/** Usuario de un intermediario (corredor, agente o sociedad de corretaje). */
+export async function requerirIntermediario() {
+  const user = await requerirRol("INTERMEDIARIO");
+  if (!user.intermediario || !user.intermediarioId) redirect("/ingresar");
+  return { ...user, intermediarioId: user.intermediarioId, intermediario: user.intermediario };
 }

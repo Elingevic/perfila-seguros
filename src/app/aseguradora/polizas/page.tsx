@@ -5,7 +5,7 @@ import { BotonEnviar } from "@/components/boton-enviar";
 import { BadgeEstado, Encabezado, Input, Tarjeta, Vacio, cx } from "@/components/ui";
 import { requerirAseguradora } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { ESTADO_POLIZA, METODOS_PAGO, PRODUCTOS, fecha, usd, usdEntero, type MetodoPago, type Producto } from "@/lib/dominio";
+import { ESTADO_POLIZA, METODOS_PAGO, RAMOS, fecha, usd, usdEntero, type MetodoPago, type Ramo } from "@/lib/dominio";
 
 export const metadata: Metadata = { title: "Pólizas y pagos" };
 
@@ -22,7 +22,7 @@ export default async function PolizasAseguradoraPage({ searchParams }: PageProps
     }),
     db.poliza.findMany({
       where: { aseguradoraId: user.aseguradoraId },
-      include: { user: { select: { nombre: true, email: true, telefono: true } } },
+      include: { user: { select: { nombre: true, email: true, telefono: true } }, intermediario: { select: { nombre: true } } },
       orderBy: { createdAt: "desc" },
       take: 200,
     }),
@@ -52,7 +52,7 @@ export default async function PolizasAseguradoraPage({ searchParams }: PageProps
                       {METODOS_PAGO[p.metodo as MetodoPago]} · {p.banco} · ref. <b>{p.referencia}</b> · {fecha(p.fechaPago)}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
-                      Póliza {p.poliza.numero} · {PRODUCTOS[p.poliza.producto as Producto].nombre} · {p.poliza.user.nombre} ({p.poliza.user.telefono ?? p.poliza.user.email})
+                      Póliza {p.poliza.numero} · {RAMOS[p.poliza.ramo as Ramo].nombre} · {p.poliza.user.nombre} ({p.poliza.user.telefono ?? p.poliza.user.email})
                     </p>
                   </div>
                   <div className="flex flex-col gap-2 sm:w-80">
@@ -78,6 +78,7 @@ export default async function PolizasAseguradoraPage({ searchParams }: PageProps
               <tr>
                 <th className="px-4 py-3">Póliza</th>
                 <th className="px-4 py-3">Asegurado</th>
+                <th className="px-4 py-3">Intermediario</th>
                 <th className="px-4 py-3">Cobertura</th>
                 <th className="px-4 py-3">Prima</th>
                 <th className="px-4 py-3">Pagada hasta</th>
@@ -92,7 +93,8 @@ export default async function PolizasAseguradoraPage({ searchParams }: PageProps
                     <div className="font-medium">{p.user.nombre}</div>
                     <div className="text-xs text-slate-500">{p.user.email} · {p.user.telefono}</div>
                   </td>
-                  <td className="px-4 py-3">{PRODUCTOS[p.producto as Producto].nombre}<div className="text-xs text-slate-500">hasta {usdEntero(p.sumaAseguradaUsd)}</div></td>
+                  <td className="px-4 py-3">{p.intermediario.nombre}</td>
+                  <td className="px-4 py-3">{RAMOS[p.ramo as Ramo].nombre}<div className="text-xs text-slate-500">hasta {usdEntero(p.sumaAseguradaUsd)}</div></td>
                   <td className="px-4 py-3">{usd(p.primaCents)}</td>
                   <td className="px-4 py-3">{p.pagadaHasta ? fecha(p.pagadaHasta) : "—"}</td>
                   <td className="px-4 py-3"><BadgeEstado estado={p.estado} mapa={ESTADO_POLIZA} /></td>

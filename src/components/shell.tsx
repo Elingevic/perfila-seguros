@@ -13,17 +13,25 @@ const ENLACES: Record<UsuarioActual["rol"], Enlace[]> = {
     { href: "/app/ofertas", label: "Ofertas" },
     { href: "/app/polizas", label: "Mis pólizas" },
   ],
+  INTERMEDIARIO: [
+    { href: "/intermediario", label: "Resumen", exacto: true },
+    { href: "/intermediario/perfiles", label: "Perfiles" },
+    { href: "/intermediario/ofertas", label: "Mis ofertas" },
+    { href: "/intermediario/cartera", label: "Mi cartera" },
+    { href: "/intermediario/empresas", label: "Empresas" },
+  ],
   ASEGURADORA: [
     { href: "/aseguradora", label: "Resumen", exacto: true },
-    { href: "/aseguradora/perfiles", label: "Perfiles" },
-    { href: "/aseguradora/ofertas", label: "Mis ofertas" },
+    { href: "/aseguradora/intermediarios", label: "Intermediarios" },
     { href: "/aseguradora/polizas", label: "Pólizas y pagos" },
+    { href: "/aseguradora/claves", label: "Claves" },
     { href: "/aseguradora/siniestros", label: "Siniestros" },
     { href: "/aseguradora/configuracion", label: "Configuración" },
   ],
   ADMIN: [
     { href: "/admin", label: "Resumen", exacto: true },
-    { href: "/admin/aseguradoras", label: "Aseguradoras" },
+    { href: "/admin/aseguradoras", label: "Empresas" },
+    { href: "/admin/intermediarios", label: "Intermediarios" },
     { href: "/admin/usuarios", label: "Usuarios" },
   ],
 };
@@ -40,7 +48,7 @@ export async function Shell({ user, children }: { user: UsuarioActual; children:
             <Logo />
             {user.rol !== "PERSONA" && (
               <span className="rounded-md bg-marca-900 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                {user.rol === "ADMIN" ? "Admin" : user.aseguradora?.nombre ?? "Aseguradora"}
+                {user.rol === "ADMIN" ? "Admin" : user.rol === "INTERMEDIARIO" ? user.intermediario?.nombre ?? "Intermediario" : user.aseguradora?.nombre ?? "Empresa"}
               </span>
             )}
           </Link>

@@ -4,76 +4,40 @@ import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import { requerirAseguradora } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { ESTADO_SINIESTRO, PRODUCTOS, parseProductos, usd, type Producto } from "@/lib/dominio";
-import { ConfigAseguradoraEsquema, OfertaEsquema, erroresDe, type EstadoForm } from "@/lib/esquemas";
-import { notificar } from "@/lib/notificar";
+import { ESTADO_SINIESTRO, RAMOS, usd, type Ramo } from "@/lib/dominio";
+import { ConfigAseguradoraEsquema, erroresDe, type EstadoForm } from "@/lib/esquemas";
+import { notificar, notificarIntermediario } from "@/lib/notificar";
 
 async function aseguradoraAprobada() {
   const user = await requerirAseguradora();
   if (user.aseguradora.estado !== "APROBADA") {
-    throw new Error("Tu aseguradora aún no está aprobada para operar.");
+    throw new Error("Tu empresa aún no está aprobada para operar.");
   }
   return user;
 }
 
 // ---------------------------------------------------------------------------
-// Ofertas
+// Intermediarios
 // ---------------------------------------------------------------------------
-export async function enviarOferta(_: EstadoForm, formData: FormData): Promise<EstadoForm> {
+export async function gestionarVinculo(vinculoId: string, aprobar: boolean) {
   const user = await aseguradoraAprobada();
-  const r = OfertaEsquema.safeParse(Object.fromEntries(formData));
-  if (!r.success) return { errores: erroresDe(r.error) };
-  const d = r.data;
+  const v = await db.vinculo.findFirst({ where: { id: vinculoId, aseguradoraId: user.aseguradoraId } });
+  if (!v) return;
 
-  const solicitud = await db.solicitud.findUnique({ where: { id: d.solicitudId }, include: { perfil: true } });
-  if (!solicitud || solicitud.estado !== "ABIERTA" || solicitud.expiraAt < new Date()) {
-    return { mensaje: "Este perfil ya no está recibiendo ofertas." };
+  await db.vinculo.update({ where: { id: v.id }, data: { estado: aprobar ? "APROBADO" : "RECHAZADO" } });
+  if (!aprobar) {
+    // Sin vínculo no puede mantener ofertas vigentes con esta empresa
+    await db.oferta.updateMany({
+      where: { intermediarioId: v.intermediarioId, aseguradoraId: user.aseguradoraId, estado: "ENVIADA" },
+      data: { estado: "RETIRADA" },
+    });
   }
-  if (!parseProductos(solicitud.productos).includes(d.producto)) {
-    return { mensaje: "El usuario no busca esta cobertura." };
-  }
-
-  const existente = await db.oferta.findUnique({
-    where: { solicitudId_aseguradoraId_producto: { solicitudId: d.solicitudId, aseguradoraId: user.aseguradoraId, producto: d.producto } },
+  await notificarIntermediario(v.intermediarioId, {
+    titulo: aprobar ? `${user.aseguradora.nombre} aprobó tu vínculo` : `${user.aseguradora.nombre} rechazó tu vínculo`,
+    mensaje: aprobar ? "Ya puedes ofrecer sus productos a los perfiles publicados." : "Contacta a la empresa si crees que es un error.",
+    link: "/intermediario/empresas",
   });
-  if (existente && existente.estado !== "ENVIADA" && existente.estado !== "RETIRADA") {
-    return { mensaje: "Ya no puedes modificar esta oferta." };
-  }
-  const yaElegida = await db.oferta.findFirst({
-    where: { solicitudId: d.solicitudId, producto: d.producto, estado: "ACEPTADA" },
-  });
-  if (yaElegida) return { mensaje: "El usuario ya eligió una oferta para esta cobertura." };
-
-  const datos = {
-    primaCents: Math.round(d.primaUsd * 100),
-    sumaAseguradaUsd: d.sumaAseguradaUsd,
-    resumen: d.resumen,
-    exclusiones: d.exclusiones,
-    estado: "ENVIADA",
-  };
-  await db.oferta.upsert({
-    where: { solicitudId_aseguradoraId_producto: { solicitudId: d.solicitudId, aseguradoraId: user.aseguradoraId, producto: d.producto } },
-    update: datos,
-    create: { ...datos, solicitudId: d.solicitudId, aseguradoraId: user.aseguradoraId, producto: d.producto },
-  });
-
-  await notificar(solicitud.perfil.userId, {
-    titulo: existente?.estado === "ENVIADA" ? "Una aseguradora mejoró su oferta" : "¡Nueva oferta para ti!",
-    mensaje: `${user.aseguradora.nombre} te ofrece ${PRODUCTOS[d.producto].nombre} por ${usd(datos.primaCents)}/mes.`,
-    link: "/app/ofertas",
-  });
-
-  revalidatePath("/aseguradora", "layout");
-  return { ok: true, mensaje: existente?.estado === "ENVIADA" ? "Oferta actualizada." : "Oferta enviada. Te avisaremos si la acepta." };
-}
-
-export async function retirarOferta(ofertaId: string) {
-  const user = await aseguradoraAprobada();
-  await db.oferta.updateMany({
-    where: { id: ofertaId, aseguradoraId: user.aseguradoraId, estado: "ENVIADA" },
-    data: { estado: "RETIRADA" },
-  });
-  revalidatePath("/aseguradora", "layout");
+  revalidatePath("/aseguradora/intermediarios");
 }
 
 // ---------------------------------------------------------------------------
@@ -96,7 +60,7 @@ export async function verificarPago(pagoId: string, aprobar: boolean, formData: 
   const nota = String(formData.get("nota") ?? "").trim().slice(0, 300) || null;
   const ahora = new Date();
   const poliza = pago.poliza;
-  const prod = PRODUCTOS[poliza.producto as Producto].nombre;
+  const ramo = RAMOS[poliza.ramo as Ramo].nombre;
 
   if (aprobar) {
     const base = poliza.pagadaHasta && poliza.pagadaHasta > ahora ? poliza.pagadaHasta : ahora;
@@ -109,9 +73,16 @@ export async function verificarPago(pagoId: string, aprobar: boolean, formData: 
     ]);
     await notificar(poliza.userId, {
       titulo: poliza.estado === "PENDIENTE_PAGO" ? "¡Tu póliza está activa! 🎉" : "Pago confirmado",
-      mensaje: `${user.aseguradora.nombre} confirmó tu pago de ${usd(pago.montoCents)}. ${prod} cubierto por un mes más.`,
+      mensaje: `${user.aseguradora.nombre} confirmó tu pago de ${usd(pago.montoCents)}. ${ramo} cubierto por un mes más.`,
       link: `/app/polizas/${poliza.id}`,
     });
+    if (poliza.estado === "PENDIENTE_PAGO") {
+      await notificarIntermediario(poliza.intermediarioId, {
+        titulo: "Póliza activada",
+        mensaje: `La póliza ${poliza.numero} (${ramo}) quedó activa tras confirmarse el primer pago.`,
+        link: "/intermediario/cartera",
+      });
+    }
   } else {
     await db.pago.update({
       where: { id: pago.id },
@@ -155,6 +126,28 @@ export async function actualizarSiniestro(siniestroId: string, formData: FormDat
     link: `/app/polizas/${s.polizaId}`,
   });
   revalidatePath("/aseguradora/siniestros");
+}
+
+// ---------------------------------------------------------------------------
+// Claves de emergencia
+// ---------------------------------------------------------------------------
+export async function actualizarClave(claveId: string, estado: "UTILIZADA" | "ANULADA") {
+  const user = await aseguradoraAprobada();
+  const c = await db.claveEmergencia.findFirst({
+    where: { id: claveId, estado: "EMITIDA", poliza: { aseguradoraId: user.aseguradoraId } },
+    include: { poliza: true },
+  });
+  if (!c) return;
+
+  await db.claveEmergencia.update({ where: { id: c.id }, data: { estado } });
+  if (estado === "ANULADA") {
+    await notificar(c.poliza.userId, {
+      titulo: "Clave de emergencia anulada",
+      mensaje: `${user.aseguradora.nombre} anuló la clave ${c.codigo}. Comunícate con su central de emergencias.`,
+      link: `/app/polizas/${c.polizaId}`,
+    });
+  }
+  revalidatePath("/aseguradora/claves");
 }
 
 // ---------------------------------------------------------------------------

@@ -1,21 +1,22 @@
 import Link from "next/link";
 import { BotonLink, Logo } from "@/components/ui";
-import { usuarioActual } from "@/lib/dal";
-import { CODIGOS_PRODUCTO, PRODUCTOS, RUTA_INICIO } from "@/lib/dominio";
 import { PiePagina } from "@/components/pie-pagina";
+import { usuarioActual } from "@/lib/dal";
+import { CODIGOS_RAMO, GRUPOS_RAMO, RAMOS, RUTA_INICIO } from "@/lib/dominio";
 
 const PASOS = [
   ["Crea tu perfil", "Responde 7 preguntas en 2 minutos: edad, ocupación, vehículo, dependientes y cuánto puedes pagar."],
-  ["Te orientamos", "Te recomendamos qué coberturas necesitas y te explicamos por qué, en lenguaje sencillo."],
-  ["Las aseguradoras compiten", "Tu perfil anónimo llega a aseguradoras autorizadas, que te envían sus mejores ofertas."],
+  ["Te orientamos", "Te recomendamos qué ramos necesitas y te explicamos por qué, en lenguaje sencillo."],
+  ["Los corredores compiten", "Tu perfil anónimo llega a corredores y agentes autorizados, que te ofrecen productos de las empresas que representan."],
   ["Eliges y pagas", "Comparas precio, cobertura y rapidez de pago. Contratas en línea y pagas con Pago Móvil."],
 ] as const;
 
 const PREGUNTAS = [
-  ["¿Cuánto cuesta usar Perfila?", "Nada. Crear tu perfil y recibir ofertas es gratis. Solo pagas la prima de la póliza que elijas, directamente a la aseguradora."],
-  ["¿Las aseguradoras ven mis datos?", "No. Ven un perfil anónimo (edad, estado, ocupación, presupuesto y coberturas que buscas). Tu nombre y contacto solo se comparten con la aseguradora cuya oferta aceptes."],
-  ["¿Las aseguradoras son confiables?", "Solo participan empresas verificadas y autorizadas para operar en Venezuela. Además, te mostramos su porcentaje de reclamos pagados y cuánto tardan en pagar."],
-  ["¿Cómo pago?", "Mensualmente, por Pago Móvil, transferencia o tarjeta. Reportas el pago en la app y la aseguradora lo confirma."],
+  ["¿Cuánto cuesta usar Perfila?", "Nada. Crear tu perfil y recibir ofertas es gratis. Solo pagas la prima de la póliza que elijas, directamente a la empresa."],
+  ["¿Quién me hace las ofertas?", "Corredores de seguros, agentes y sociedades de corretaje con autorización vigente de la SUDEASEG. Cada oferta muestra quién la propone y qué empresa la respalda."],
+  ["¿Ven mis datos personales?", "No. Ven un perfil anónimo (edad, estado, ocupación, presupuesto y ramos que buscas). Tu nombre y contacto solo se comparten con el intermediario y la empresa de la oferta que aceptes."],
+  ["¿Qué es la clave de emergencia?", "Si tienes una póliza de medicina prepagada activa, puedes pedir desde tu teléfono la clave para que te atiendan en la clínica. Se emite al instante y vale 24 horas."],
+  ["¿Cómo pago?", "Mensualmente, por Pago Móvil, transferencia o tarjeta. Reportas el pago en la app y la empresa lo confirma."],
   ["¿Qué pasa si cambio de trabajo?", "Nada: tu perfil y tus pólizas son tuyos, no de tu empleador. Te siguen a donde vayas."],
 ] as const;
 
@@ -50,11 +51,11 @@ export default async function Inicio() {
               </span>
               <h1 className="mt-6 text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
                 Publica tu perfil.<br />
-                <span className="text-marca-200">Las aseguradoras compiten por ti.</span>
+                <span className="text-marca-200">Los corredores compiten por ti.</span>
               </h1>
               <p className="mt-6 max-w-lg text-lg text-marca-100">
-                Crea tu perfil asegurador en 2 minutos, recibe ofertas de aseguradoras autorizadas y asegúrate desde{" "}
-                <b className="text-white">$3 al mes</b>. Sin oficinas, sin papeleo.
+                Crea tu perfil asegurador en 2 minutos y recibe ofertas de corredores y agentes autorizados, respaldadas por empresas
+                reguladas. Asegúrate desde <b className="text-white">$3 al mes</b>, sin oficinas ni papeleo.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <BotonLink href="/registro" tamano="lg" variante="secundario">Crear mi perfil gratis</BotonLink>
@@ -62,7 +63,7 @@ export default async function Inicio() {
                   Cómo funciona
                 </BotonLink>
               </div>
-              <p className="mt-6 text-sm text-marca-200">🔒 Perfil anónimo · Sin compromiso · Pago Móvil</p>
+              <p className="mt-6 text-sm text-marca-200">🔒 Perfil anónimo · 🚑 Clave de emergencia · 📱 Pago Móvil</p>
             </div>
 
             {/* Maqueta de ofertas */}
@@ -72,21 +73,24 @@ export default async function Inicio() {
                   <span className="text-2xl">📨</span>
                   <div>
                     <b>4 ofertas recibidas</b>
-                    <div className="text-xs text-marca-200">Accidentes personales</div>
+                    <div className="text-xs text-marca-200">Accidentes Personales · ramo 06</div>
                   </div>
                 </div>
                 {[
-                  ["#0ea5e9", "A", "Aseguradora A", "$3,40", "Más barata"],
-                  ["#16a34a", "B", "Aseguradora B", "$4,10", "Mayor cobertura"],
-                  ["#a855f7", "C", "Aseguradora C", "$3,90", "Paga más rápido"],
-                ].map(([c, s, n, p, b], i) => (
-                  <div key={n} className="animar-aparecer mt-3 flex items-center gap-3 rounded-2xl border border-slate-200 p-3" style={{ animationDelay: `${i * 0.15}s` }}>
-                    <div className="flex size-10 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ background: c }}>{s}</div>
-                    <div className="flex-1">
-                      <div className="text-sm font-semibold">{n}</div>
-                      <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-700">{b}</span>
+                  ["CS", "Corredor de Seguros", "Empresa A", "$3,40", "Más barata"],
+                  ["SC", "Sociedad de Corretaje", "Empresa B", "$4,10", "Mayor cobertura"],
+                  ["AG", "Agente de Seguros", "Empresa C", "$3,90", "Paga más rápido"],
+                ].map(([s, t, e, p, b], i) => (
+                  <div key={t} className="animar-aparecer mt-3 rounded-2xl border border-slate-200 p-3" style={{ animationDelay: `${i * 0.15}s` }}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-9 items-center justify-center rounded-full bg-marca-900 text-xs font-bold text-white">{s}</div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold">{t}</div>
+                        <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-700">{b}</span>
+                      </div>
+                      <div className="text-right font-bold">{p}<div className="text-[10px] font-normal text-slate-500">/mes</div></div>
                     </div>
-                    <div className="text-right font-bold">{p}<div className="text-[10px] font-normal text-slate-500">/mes</div></div>
+                    <div className="mt-2 rounded-lg bg-slate-50 px-2 py-1 text-[11px] text-slate-500">Respaldada por {e}</div>
                   </div>
                 ))}
               </div>
@@ -99,9 +103,7 @@ export default async function Inicio() {
           <h2 className="max-w-3xl text-3xl font-bold tracking-tight sm:text-4xl">
             Si no trabajas en una empresa que te dé seguro, lo más probable es que no tengas ninguno.
           </h2>
-          <p className="mt-4 max-w-2xl text-lg text-slate-600">
-            No es falta de interés. Es que nadie te lo ha puesto fácil.
-          </p>
+          <p className="mt-4 max-w-2xl text-lg text-slate-600">No es falta de interés. Es que nadie te lo ha puesto fácil.</p>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             {[
               ["🏢", "Difícil acceso", "Contratar una póliza individual es lento, presencial y pensado para otro tipo de cliente."],
@@ -120,8 +122,8 @@ export default async function Inicio() {
         {/* Cómo funciona */}
         <section id="como-funciona" className="scroll-mt-8 bg-white py-20">
           <div className="mx-auto max-w-6xl px-4">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Como LinkedIn, pero al revés</h2>
-            <p className="mt-3 text-lg text-slate-600">Tú no buscas a la aseguradora. La aseguradora te busca a ti.</p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Tú publicas, ellos te buscan</h2>
+            <p className="mt-3 text-lg text-slate-600">No tienes que salir a buscar un seguro: los intermediarios autorizados vienen a ti.</p>
             <ol className="mt-10 grid gap-6 md:grid-cols-4">
               {PASOS.map(([t, d], i) => (
                 <li key={t}>
@@ -134,50 +136,76 @@ export default async function Inicio() {
           </div>
         </section>
 
-        {/* Coberturas */}
+        {/* Ramos */}
         <section className="mx-auto max-w-6xl px-4 py-20">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Arma tu protección por piezas</h2>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Arma tu protección por ramos</h2>
           <p className="mt-3 text-lg text-slate-600">Elige solo lo que necesitas y ajústalo a tu presupuesto.</p>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {CODIGOS_PRODUCTO.map((k) => (
-              <div key={k} className="rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="text-3xl">{PRODUCTOS[k].icono}</div>
-                <h3 className="mt-3 font-semibold">{PRODUCTOS[k].nombre}</h3>
-                <p className="mt-1 text-sm text-slate-600">{PRODUCTOS[k].descripcion}</p>
-                <p className="mt-3 text-sm">desde <b>~${(PRODUCTOS[k].baseUsd * 0.85).toFixed(2)}</b>/mes</p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 text-xs text-slate-500">Precios referenciales. Cada aseguradora define su prima según tu perfil.</p>
-        </section>
-
-        {/* Aseguradoras */}
-        <section className="bg-marca-950 py-20 text-white">
-          <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 lg:grid-cols-2">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">¿Eres una aseguradora?</h2>
-              <p className="mt-4 text-lg text-marca-100">
-                Llega a un segmento que hoy no llega a tu canal tradicional: jóvenes, freelancers, emprendedores y trabajadores de plataformas.
-              </p>
-              <ul className="mt-6 space-y-3 text-marca-100">
-                <li>✓ Perfiles precalificados con necesidades y presupuesto claros</li>
-                <li>✓ Menor costo de adquisición por cliente</li>
-                <li>✓ Gestión de ofertas, pagos y siniestros en un solo panel</li>
-              </ul>
-              <BotonLink href="/registro/aseguradora" tamano="lg" variante="secundario" className="mt-8">Registrar mi aseguradora</BotonLink>
-            </div>
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-              <div className="text-sm text-marca-200">Perfil #K7M2P · Nuevo</div>
-              <div className="mt-1 font-semibold">24 años · Repartidor de app · Carabobo · Moto</div>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                {["🩹 Accidentes", "🛵 RCV", "🚑 Emergencias"].map((t) => (
-                  <span key={t} className="rounded-full bg-white/10 px-2.5 py-1">{t}</span>
+          {Object.entries(GRUPOS_RAMO).map(([g, titulo]) => (
+            <div key={g} className="mt-10">
+              <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500">{titulo}</h3>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {CODIGOS_RAMO.filter((k) => RAMOS[k].grupo === g).map((k) => (
+                  <div key={k} className="rounded-2xl border border-slate-200 bg-white p-5">
+                    <div className="text-3xl">{RAMOS[k].icono}</div>
+                    <h4 className="mt-3 font-semibold">{RAMOS[k].nombre}</h4>
+                    <p className="mt-1 text-sm text-slate-600">{RAMOS[k].descripcion}</p>
+                    <p className="mt-3 text-sm">desde <b>~${(RAMOS[k].baseUsd * 0.85).toFixed(2)}</b>/mes</p>
+                  </div>
                 ))}
               </div>
-              <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4 text-sm">
-                <span>Presupuesto <b>$10/mes</b></span>
-                <span className="rounded-xl bg-white px-3 py-1.5 font-semibold text-marca-900">Enviar oferta</span>
-              </div>
+            </div>
+          ))}
+          <p className="mt-6 text-xs text-slate-500">
+            Ramos según el catálogo de ramos contables de la SUDEASEG. Precios referenciales: cada oferta define su prima según tu perfil.
+          </p>
+        </section>
+
+        {/* Clave de emergencia */}
+        <section className="px-4 pb-20">
+          <div className="mx-auto grid max-w-6xl items-center gap-8 rounded-3xl border border-red-100 bg-red-50 p-8 sm:p-12 lg:grid-cols-2">
+            <div>
+              <span className="text-4xl">🚑</span>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight">Clave de emergencia desde tu teléfono</h2>
+              <p className="mt-3 text-lg text-slate-700">
+                Con tu póliza de medicina prepagada activa, pides la clave para que te atiendan en la clínica en segundos, sin llamadas
+                ni esperas. Tu empresa la recibe al instante.
+              </p>
+            </div>
+            <div className="mx-auto w-full max-w-sm rounded-2xl border-2 border-dashed border-green-500 bg-white p-6 text-center">
+              <div className="text-xs uppercase tracking-wider text-green-800">Clave de emergencia</div>
+              <div className="mt-1 font-mono text-3xl font-extrabold tracking-widest text-green-900">EMG-7KQ2-X9HD</div>
+              <div className="mt-2 text-sm text-slate-600">Válida por 24 horas</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Intermediarios y empresas */}
+        <section className="bg-marca-950 py-20 text-white">
+          <div className="mx-auto grid max-w-6xl gap-10 px-4 lg:grid-cols-2">
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">¿Eres corredor, agente o sociedad de corretaje?</h2>
+              <p className="mt-4 text-marca-100">
+                Recibe perfiles de clientes que buscan seguro, con necesidades y presupuesto claros, y ofréceles los productos de las
+                empresas que representas.
+              </p>
+              <ul className="mt-6 space-y-2 text-marca-100">
+                <li>✓ Clientes nuevos sin costo de prospección</li>
+                <li>✓ Oferta por ramo con el respaldo de tus empresas</li>
+                <li>✓ Tu cartera, pagos y renovaciones en un solo panel</li>
+              </ul>
+              <BotonLink href="/registro/intermediario" tamano="lg" variante="secundario" className="mt-8">Registrarme como intermediario</BotonLink>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">¿Eres una empresa de seguros o de medicina prepagada?</h2>
+              <p className="mt-4 text-marca-100">
+                Habilita a tus intermediarios para que ofrezcan tus productos a un segmento que hoy no llega a tu canal tradicional.
+              </p>
+              <ul className="mt-6 space-y-2 text-marca-100">
+                <li>✓ Aprueba qué intermediarios te representan</li>
+                <li>✓ Verifica pagos y gestiona siniestros</li>
+                <li>✓ Recibe y controla claves de emergencia en tiempo real</li>
+              </ul>
+              <BotonLink href="/registro/aseguradora" tamano="lg" variante="secundario" className="mt-8">Registrar mi empresa</BotonLink>
             </div>
           </div>
         </section>

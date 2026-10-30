@@ -1,7 +1,7 @@
 import { Encabezado, Kpi, Tarjeta } from "@/components/ui";
 import { requerirRol } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { CODIGOS_PRODUCTO, OCUPACIONES, PRODUCTOS, usd, type Ocupacion } from "@/lib/dominio";
+import { CODIGOS_RAMO, OCUPACIONES, RAMOS, usd, type Ocupacion } from "@/lib/dominio";
 
 export default async function AdminPage() {
   await requerirRol("ADMIN");
@@ -12,7 +12,7 @@ export default async function AdminPage() {
     db.oferta.count(),
     db.poliza.findMany({ where: { estado: "ACTIVA" }, select: { primaCents: true } }),
     db.aseguradora.count({ where: { estado: "PENDIENTE" } }),
-    db.poliza.groupBy({ by: ["producto"], _count: true, where: { estado: { not: "CANCELADA" } } }),
+    db.poliza.groupBy({ by: ["ramo"], _count: true, where: { estado: { not: "CANCELADA" } } }),
     db.perfil.groupBy({ by: ["ocupacion"], _count: true }),
   ]);
   const primas = polizasActivas.reduce((s, p) => s + p.primaCents, 0);
@@ -39,7 +39,7 @@ export default async function AdminPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Barras
           titulo="Pólizas por cobertura"
-          datos={CODIGOS_PRODUCTO.map((p) => [PRODUCTOS[p].nombre, porProducto.find((x) => x.producto === p)?._count ?? 0])}
+          datos={CODIGOS_RAMO.map((p) => [RAMOS[p].nombre, porProducto.find((x) => x.ramo === p)?._count ?? 0])}
         />
         <Barras
           titulo="Perfiles por ocupación"

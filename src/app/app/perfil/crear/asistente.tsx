@@ -4,12 +4,12 @@ import { useMemo, useState, useTransition } from "react";
 import { guardarYPublicarPerfil, type DatosAsistente } from "@/actions/persona";
 import { Alerta, Boton, Campo, Input, Select, cx } from "@/components/ui";
 import {
-  CODIGOS_PRODUCTO, ESTADOS_VE, OCUPACIONES, PRESUPUESTO_MAX, PRESUPUESTO_MIN, PRODUCTOS, SALUD, VEHICULOS,
+  CODIGOS_RAMO, ESTADOS_VE, GRUPOS_RAMO, OCUPACIONES, PRESUPUESTO_MAX, PRESUPUESTO_MIN, RAMOS, SALUD, VEHICULOS,
   edadDesde, motivoRecomendacion, primaEstimada, recomendar,
-  type DatosPerfil, type Ocupacion, type Producto, type Salud, type Vehiculo,
+  type DatosPerfil, type Ocupacion, type Ramo, type Salud, type Vehiculo,
 } from "@/lib/dominio";
 
-type Props = { inicial?: Omit<DatosAsistente, "productos"> & { productos?: string[] }; nombre: string };
+type Props = { inicial?: Omit<DatosAsistente, "ramos"> & { ramos?: string[] }; nombre: string };
 
 const DEPENDIENTES: [number, string][] = [[0, "No"], [1, "Sí, 1 persona"], [2, "Sí, 2 personas"], [3, "Sí, 3 o más"]];
 
@@ -23,7 +23,7 @@ export function Asistente({ inicial, nombre }: Props) {
     dependientes: inicial?.dependientes ?? -1,
     salud: inicial?.salud ?? "",
     presupuestoUsd: inicial?.presupuestoUsd ?? 12,
-    productos: inicial?.productos ?? [],
+    ramos: inicial?.ramos ?? [],
   });
   const [errores, setErrores] = useState<Record<string, string[] | undefined>>();
   const [mensaje, setMensaje] = useState<string>();
@@ -92,9 +92,9 @@ export function Asistente({ inicial, nombre }: Props) {
     },
     {
       titulo: "Esto es lo que te recomendamos",
-      sub: "Activa o desactiva lo que quieras. Las aseguradoras te harán ofertas para cada cobertura.",
-      valido: d.productos.length > 0,
-      contenido: perfil && <Coberturas perfil={perfil} elegidos={d.productos} onCambio={(p) => set("productos", p)} />,
+      sub: "Activa o desactiva lo que quieras. Corredores y agentes autorizados te harán ofertas para cada ramo.",
+      valido: d.ramos.length > 0,
+      contenido: perfil && <Coberturas perfil={perfil} elegidos={d.ramos} onCambio={(p) => set("ramos", p)} />,
     },
   ];
 
@@ -117,7 +117,7 @@ export function Asistente({ inicial, nombre }: Props) {
       // Al llegar a coberturas, precarga las recomendadas si aún no hay elección
       setD((x) => {
         const p = perfilDe(x);
-        return x.productos.length > 0 || !p ? x : { ...x, productos: recomendar(p) };
+        return x.ramos.length > 0 || !p ? x : { ...x, ramos: recomendar(p) };
       });
     }
     setPaso(destino);
@@ -177,7 +177,7 @@ export function Asistente({ inicial, nombre }: Props) {
       </div>
       {ultimo && (
         <p className="mt-4 text-center text-xs text-slate-500">
-          🔒 Tu perfil es anónimo: las aseguradoras ven tu edad, ocupación y estado, pero no tu nombre ni tus datos de contacto.
+          🔒 Tu perfil es anónimo: los intermediarios ven tu edad, ocupación y estado, pero no tu nombre ni tus datos de contacto.
         </p>
       )}
     </div>
@@ -209,29 +209,34 @@ function Opcion({ activa, onClick, children }: { activa: boolean; onClick: () =>
 }
 
 function Coberturas({ perfil, elegidos, onCambio }: { perfil: DatosPerfil; elegidos: string[]; onCambio: (p: string[]) => void }) {
-  const total = elegidos.reduce((s, p) => s + primaEstimada(p as Producto, perfil), 0);
+  const total = elegidos.reduce((s, p) => s + primaEstimada(p as Ramo, perfil), 0);
   const recomendados = recomendar(perfil);
   return (
     <div className="space-y-3">
-      {CODIGOS_PRODUCTO.map((k) => {
-        const on = elegidos.includes(k);
-        const motivo = recomendados.includes(k) ? motivoRecomendacion(k, perfil) : null;
-        return (
-          <button key={k} type="button" onClick={() => onCambio(on ? elegidos.filter((x) => x !== k) : [...elegidos, k])}
-            className={cx("flex w-full gap-4 rounded-2xl border-2 bg-white p-4 text-left transition", on ? "border-marca-600" : "border-slate-200")}>
-            <span className="text-2xl">{PRODUCTOS[k].icono}</span>
-            <span className="flex-1">
-              <span className="block font-semibold">{PRODUCTOS[k].nombre}</span>
-              <span className="block text-sm text-slate-600">{PRODUCTOS[k].descripcion}</span>
-              {motivo && <span className="mt-1 block text-sm text-marca-600">💡 {motivo}</span>}
-              <span className="mt-1 block text-sm">desde ~<b>${(primaEstimada(k, perfil) * 0.85).toFixed(2)}</b>/mes</span>
-            </span>
-            <span className={cx("relative mt-1 h-6 w-11 shrink-0 rounded-full transition", on ? "bg-marca-600" : "bg-slate-300")}>
-              <span className={cx("absolute top-0.5 size-5 rounded-full bg-white shadow transition-all", on ? "left-5.5" : "left-0.5")} />
-            </span>
-          </button>
-        );
-      })}
+      {Object.entries(GRUPOS_RAMO).map(([grupo, titulo]) => (
+        <div key={grupo} className="space-y-3">
+          <h3 className="pt-2 text-xs font-semibold uppercase tracking-wider text-slate-500">{titulo}</h3>
+          {CODIGOS_RAMO.filter((k) => RAMOS[k].grupo === grupo).map((k) => {
+            const on = elegidos.includes(k);
+            const motivo = recomendados.includes(k) ? motivoRecomendacion(k, perfil) : null;
+            return (
+              <button key={k} type="button" onClick={() => onCambio(on ? elegidos.filter((x) => x !== k) : [...elegidos, k])}
+                className={cx("flex w-full gap-4 rounded-2xl border-2 bg-white p-4 text-left transition", on ? "border-marca-600" : "border-slate-200")}>
+                <span className="text-2xl">{RAMOS[k].icono}</span>
+                <span className="flex-1">
+                  <span className="block font-semibold">{RAMOS[k].nombre}</span>
+                  <span className="block text-sm text-slate-600">{RAMOS[k].descripcion}</span>
+                  {motivo && <span className="mt-1 block text-sm text-marca-600">💡 {motivo}</span>}
+                  <span className="mt-1 block text-sm">desde ~<b>${(primaEstimada(k, perfil) * 0.85).toFixed(2)}</b>/mes</span>
+                </span>
+                <span className={cx("relative mt-1 h-6 w-11 shrink-0 rounded-full transition", on ? "bg-marca-600" : "bg-slate-300")}>
+                  <span className={cx("absolute top-0.5 size-5 rounded-full bg-white shadow transition-all", on ? "left-5.5" : "left-0.5")} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ))}
       <p className={cx("text-center text-sm", total > perfil.presupuestoUsd ? "text-amber-700" : "text-slate-600")}>
         Estimado: ~${total.toFixed(2)}/mes de tu presupuesto de ${perfil.presupuestoUsd}
         {total > perfil.presupuestoUsd && " — podrías pasarte; las ofertas reales pueden ser menores."}

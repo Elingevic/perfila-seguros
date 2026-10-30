@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requerirRol } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { parseProductos } from "@/lib/dominio";
+import { parseRamos } from "@/lib/dominio";
 import { Asistente } from "./asistente";
 
 export const metadata: Metadata = { title: "Tu perfil asegurador" };
@@ -22,7 +22,7 @@ export default async function CrearPerfilPage() {
         dependientes: perfil.dependientes,
         salud: perfil.salud,
         presupuestoUsd: perfil.presupuestoUsd,
-        productos: perfil.solicitudes[0] ? parseProductos(perfil.solicitudes[0].productos) : undefined,
+        ramos: perfil.solicitudes[0] ? parseRamos(perfil.solicitudes[0].ramos) : undefined,
       }
     : undefined;
 
