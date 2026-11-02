@@ -52,3 +52,6 @@ playwright-report/
 /.agents
 /.claude
 /skills-lock.json
+
+# Videos generados con /brag
+/brag-output*
