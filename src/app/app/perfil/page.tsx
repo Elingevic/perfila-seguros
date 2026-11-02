@@ -6,7 +6,7 @@ import { Badge, BotonLink, Encabezado, Tarjeta } from "@/components/ui";
 import { requerirRol } from "@/lib/dal";
 import { db } from "@/lib/db";
 import {
-  OCUPACIONES, RAMOS, SALUD, VEHICULOS, edadDesde, fecha, parseRamos,
+  OCUPACIONES, RAMOS, SALUD, VEHICULOS, edadDesde, parseRamos, vigenciaSolicitud,
   type Ocupacion, type Salud, type Vehiculo,
 } from "@/lib/dominio";
 
@@ -68,7 +68,7 @@ export default async function PerfilPage() {
             {solicitud ? (
               <>
                 <p className="mt-2 text-sm text-slate-600">
-                  Los corredores y agentes pueden enviarte ofertas hasta el <b>{fecha(solicitud.expiraAt)}</b> para:
+                  Los corredores y agentes pueden enviarte ofertas <b>{vigenciaSolicitud(solicitud.expiraAt)}</b> para:
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {parseRamos(solicitud.ramos).map((p) => (

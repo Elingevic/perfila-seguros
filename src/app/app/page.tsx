@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requerirRol } from "@/lib/dal";
 import { db } from "@/lib/db";
-import { ESTADO_POLIZA, RAMOS, fecha, haceCuanto, parseRamos, usd, type Ramo } from "@/lib/dominio";
+import { ESTADO_POLIZA, RAMOS, haceCuanto, parseRamos, usd, vigenciaSolicitud, type Ramo } from "@/lib/dominio";
 import { Badge, BadgeEstado, BotonLink, Encabezado, Kpi, LogoAseguradora, Tarjeta } from "@/components/ui";
 import { ModalClaveEmergencia } from "@/components/modal-clave-emergencia";
 import { polizasConClave } from "@/lib/consultas";
@@ -85,7 +85,7 @@ export default async function InicioPersonaPage() {
                 <h2 className="font-semibold">Tu perfil en el mercado</h2>
                 {solicitud ? (
                   <p className="mt-1 text-sm text-slate-600">
-                    Publicado · recibe ofertas hasta el {fecha(solicitud.expiraAt)}
+                    Publicado · recibe ofertas {vigenciaSolicitud(solicitud.expiraAt)}
                   </p>
                 ) : (
                   <p className="mt-1 text-sm text-slate-600">No está publicado. Publícalo para recibir nuevas ofertas.</p>

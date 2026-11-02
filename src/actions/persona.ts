@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { requerirRol } from "@/lib/dal";
 import { db } from "@/lib/db";
 import {
-  DIAS_SOLICITUD_ABIERTA, HORAS_VIGENCIA_CLAVE, RAMOS, RAMOS_CON_CLAVE, diaInput, diaVE, edadDesde, fechaHora, parseRamos, usd,
+  DIAS_SOLICITUD_ABIERTA, HORAS_VIGENCIA_CLAVE, RAMOS, RAMOS_CON_CLAVE, diaInput, diaVE, edadDesde, fechaHora, parseRamos, sinVencimiento, usd,
   vencida, type Ramo,
 } from "@/lib/dominio";
 import { ClaveEsquema, PagoEsquema, PerfilEsquema, SiniestroEsquema, erroresDe, type EstadoForm } from "@/lib/esquemas";
@@ -68,7 +68,10 @@ export async function guardarYPublicarPerfil(datos: DatosAsistente): Promise<Est
     const lista = Array.from(new Set([...ramos, ...aceptados]));
     await db.solicitud.update({
       where: { id: abierta.id },
-      data: { ramos: lista.join(","), expiraAt: enDias(DIAS_SOLICITUD_ABIERTA) },
+      data: {
+        ramos: lista.join(","),
+        expiraAt: sinVencimiento(abierta.expiraAt) ? abierta.expiraAt : enDias(DIAS_SOLICITUD_ABIERTA),
+      },
     });
   } else {
     await db.solicitud.create({

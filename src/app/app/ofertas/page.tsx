@@ -5,7 +5,7 @@ import { Alerta, Badge, BotonLink, Encabezado, LogoAseguradora, Tarjeta, Vacio, 
 import { requerirRol } from "@/lib/dal";
 import { db } from "@/lib/db";
 import {
-  RAMOS, TIPOS_EMPRESA, TIPOS_INTERMEDIARIO, codigoRamo, fecha, parseRamos, usd, usdEntero,
+  RAMOS, TIPOS_EMPRESA, TIPOS_INTERMEDIARIO, codigoRamo, parseRamos, vigenciaSolicitud, usd, usdEntero,
   type Ramo, type TipoEmpresa, type TipoIntermediario,
 } from "@/lib/dominio";
 import { BotonAceptar } from "./boton-aceptar";
@@ -54,7 +54,7 @@ export default async function OfertasPage({ searchParams }: PageProps<"/app/ofer
         titulo="Tus ofertas"
         descripcion={
           abierta
-            ? `Tu perfil recibe ofertas hasta el ${fecha(solicitud.expiraAt)}. Elige una oferta por cobertura.`
+            ? `Tu perfil recibe ofertas ${vigenciaSolicitud(solicitud.expiraAt)}. Elige una oferta por cobertura.`
             : "Esta solicitud está cerrada. Publica tu perfil de nuevo para recibir más ofertas."
         }
         accion={!abierta && <BotonLink href="/app/perfil/crear">Publicar de nuevo</BotonLink>}

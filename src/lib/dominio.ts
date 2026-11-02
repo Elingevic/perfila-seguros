@@ -398,3 +398,15 @@ export function diaVE(d: Date = new Date()) {
 export function diaInput(d: Date) {
   return d.toISOString().slice(0, 10);
 }
+
+/** Vencimiento usado por los perfiles de demostración: nunca vencen en la práctica. */
+export const FECHA_SIN_VENCIMIENTO = new Date("2099-12-31T00:00:00Z");
+
+export function sinVencimiento(d: Date) {
+  return d.getTime() >= FECHA_SIN_VENCIMIENTO.getTime();
+}
+
+/** "hasta el 06 nov. 2026" o "sin fecha de vencimiento". */
+export function vigenciaSolicitud(d: Date) {
+  return sinVencimiento(d) ? "sin fecha de vencimiento" : `hasta el ${fecha(d)}`;
+}

@@ -5,7 +5,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import {
-  RAMOS, codigoRamo, edadDesde, primaEstimada, recomendar,
+  FECHA_SIN_VENCIMIENTO, RAMOS, codigoRamo, edadDesde, primaEstimada, recomendar,
   type DatosPerfil, type Ocupacion, type Ramo, type Salud, type TipoEmpresa, type TipoIntermediario, type Vehiculo,
 } from "../src/lib/dominio";
 
@@ -150,7 +150,7 @@ async function main() {
     const ramos = Array.from(new Set([...recomendar(datos), ...p.extra]));
     const creada = new Date(Date.now() - (n + 1) * 5 * 3600 * 1000);
     const solicitud = await db.solicitud.create({
-      data: { perfilId: perfil.id, ramos: ramos.join(","), createdAt: creada, expiraAt: new Date(creada.getTime() + 7 * DIA) },
+      data: { perfilId: perfil.id, ramos: ramos.join(","), createdAt: creada, expiraAt: FECHA_SIN_VENCIMIENTO },
     });
 
     // Los primeros perfiles reciben más ofertas; los dos últimos ninguna (para ofertar en la demo)
